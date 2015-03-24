@@ -1,32 +1,50 @@
 #!/usr/bin/perl
 
+# This code was originally the client code given in the Perl Socket manpage.
+
 use strict;
 use warnings;
-use Socket;
+use IO::Socket;
 
-my ($remote, $port, $iaddr, $paddr, $proto, $line);
+my ($host, $port, $kidpid, $handle, $line);
 
-$remote  = shift || "localhost";
-$port    = shift || 9020;  # random port
+$host = "localhost";
+$port = 9020;
+$/= "\015\012";
 
-if ( $port =~ /\D/ )
+# create a tcp connection to the specified host and port
+$handle = IO::Socket::INET->new(
+    Proto => "tcp",
+    PeerAddr  => $host,
+    PeerPort  => $port
+)
+|| die "can't connect to port $port on $host: $!";
+
+$handle->autoflush(1); # so output gets there right away
+
+print STDERR "[Connected to $host:$port]\n";
+
+# split the program into two processes, identical twins
+die "can't fork: $!" unless defined($kidpid = fork());
+
+# the if{} block runs only in the parent process
+if ( $kidpid )
 {
-    $port = getservbyname($port, "tcp");
+    # copy the socket to standard output
+    while ( defined($line = <$handle>) )
+    {
+        print STDOUT $line;
+    }
+    
+    kill("TERM", $kidpid); # send SIGTERM to child
 }
-die "No port" unless $port;
-
-$iaddr   = inet_aton($remote)       || die "no host: $remote";
-$paddr   = sockaddr_in($port, $iaddr);
-$proto   = getprotobyname("tcp");
-
-socket(SOCK, PF_INET, SOCK_STREAM, $proto)  || die "socket: $!";
-connect(SOCK, $paddr)               || die "connect: $!";
-
-while ( $line = <SOCK> )
+else # the else{} block runs only in the child process
 {
-    print $line;
+    # copy standard input to the socket
+    while ( defined($line = <STDIN>) )
+    {
+        print $handle $line;
+    }
+    
+    exit(0); # just in case
 }
-
-close (SOCK)                        || die "close: $!";
-
-exit(0);
