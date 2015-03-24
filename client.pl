@@ -7,7 +7,7 @@ use Socket;
 my ($remote, $port, $iaddr, $paddr, $proto, $line);
 
 $remote  = shift || "localhost";
-$port    = shift || 2345;  # random port
+$port    = shift || 9020;  # random port
 
 if ( $port =~ /\D/ )
 {

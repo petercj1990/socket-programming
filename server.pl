@@ -14,7 +14,7 @@ sub logmsg
     print "$0 $$: @_ at ", scalar localtime(), "\n";
 }
 
-my $port  = shift || 2345;
+my $port  = shift || 9020;
 
 die "invalid port" unless $port =~ /^ \d+ $/x;
 
